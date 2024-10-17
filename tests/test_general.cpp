@@ -36,7 +36,7 @@ auto make_arena(std::align_val_t align, size_t size) -> std::shared_ptr<std::byt
 auto make_arena(std::align_val_t align, size_t size) -> std::shared_ptr<std::byte>
 {
     return std::shared_ptr<std::byte>(static_cast<std::byte*>(std::aligned_alloc(static_cast<size_t>(align), size)),
-                                      &_aligned_free);
+                                      &std::free);
 }
 #endif
 
