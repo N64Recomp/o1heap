@@ -48,7 +48,7 @@ using FragmentOffset = uint32_t;
 inline auto GET_FRAGMENT(const internal::O1HeapInstance* const heap_instance, FragmentOffset offset)
     -> internal::Fragment*
 {
-    return reinterpret_cast<internal::Fragment*>(reinterpret_cast<const char* const>(heap_instance) + offset);
+    return reinterpret_cast<const internal::Fragment* const>(reinterpret_cast<const char* const>(heap_instance) + offset);
 }
 
 inline auto GET_OFFSET(const internal::O1HeapInstance* heap_instance, const internal::Fragment* fragment)
@@ -244,7 +244,8 @@ struct O1HeapInstance final
             REQUIRE(frag->header.used == used);
             CAPTURE(frag->header.size);
             REQUIRE((((size == 0U) || (frag->header.size == size))));
-            REQUIRE(((frag->header.next == NULLFRAGMENT) || (GET_FRAGMENT(this, frag->header.next)->header.prev == GET_OFFSET(this, frag))));
+            REQUIRE(((frag->header.next == NULLFRAGMENT) ||
+                     (GET_FRAGMENT(this, frag->header.next)->header.prev == GET_OFFSET(this, frag))));
             frag_ = frag->header.next;
             frag  = GET_FRAGMENT(this, frag_);
         }
