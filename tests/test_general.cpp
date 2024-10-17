@@ -15,9 +15,9 @@
 // Authors: Pavel Kirienko <pavel.kirienko@zubax.com>
 
 #include "internal.hpp"
-#include <cstdlib>
 #include <algorithm>
 #include <array>
+#include <cstdlib>
 #include <iostream>
 #include <random>
 
@@ -27,24 +27,16 @@ constexpr std::size_t KiB = 1024U;
 constexpr std::size_t MiB = KiB * KiB;
 
 #ifdef _WIN32
-void* my_aligned_alloc(size_t align, size_t size)
+auto make_arena(size_t align, size_t size) -> std::shared_ptr<std::byte>
 {
-    return _aligned_malloc(size, align);
-}
-
-void my_aligned_free(void* mem)
-{
-    _aligned_free(mem);
+    return std::shared_ptr<std::byte>(static_cast<std::byte*>(_aligned_malloc(size, align)),
+                                      &_aligned_free);
 }
 #else
-void* my_aligned_alloc(size_t align, size_t size)
+auto make_arena(size_t align, size_t size) -> std::shared_ptr<std::byte>
 {
-    return std::aligned_alloc(align, size);
-}
-
-void my_aligned_free(void* mem)
-{
-    std::aligned_free(mem);
+    return std::shared_ptr<std::byte>(static_cast<std::byte*>(std::aligned_alloc(align, size)),
+                                      &_aligned_free);
 }
 #endif
 
@@ -159,7 +151,7 @@ TEST_CASE("General: allocate: OOM")
 {
     constexpr auto                   MiB256    = MiB * 256U;
     constexpr auto                   ArenaSize = MiB256 + MiB;
-    const std::shared_ptr<std::byte> arena(static_cast<std::byte*>(my_aligned_alloc(64U, ArenaSize)), &my_aligned_free);
+    const std::shared_ptr<std::byte> arena = make_arena(64U, ArenaSize);
 
     auto heap = init(arena.get(), ArenaSize);
     REQUIRE(heap != nullptr);
@@ -200,7 +192,7 @@ TEST_CASE("General: allocate: smallest")
     using internal::Fragment;
 
     constexpr auto                   ArenaSize = MiB * 300U;
-    const std::shared_ptr<std::byte> arena(static_cast<std::byte*>(my_aligned_alloc(64U, ArenaSize)), &my_aligned_free);
+    const std::shared_ptr<std::byte> arena = make_arena(64U, ArenaSize);
 
     auto heap = init(arena.get(), ArenaSize);
     REQUIRE(heap != nullptr);
@@ -232,7 +224,7 @@ TEST_CASE("General: allocate: size_t overflow")
     constexpr auto size_max = std::numeric_limits<uint32_t>::max();
 
     constexpr auto                   ArenaSize = MiB * 300U;
-    const std::shared_ptr<std::byte> arena(static_cast<std::byte*>(my_aligned_alloc(64U, ArenaSize)), &my_aligned_free);
+    const std::shared_ptr<std::byte> arena = make_arena(64U, ArenaSize);
 
     auto heap = init(arena.get(), ArenaSize);
     REQUIRE(heap != nullptr);
@@ -504,7 +496,7 @@ TEST_CASE("General: random A")
     using internal::Fragment;
 
     constexpr auto                   ArenaSize = MiB * 300U;
-    const std::shared_ptr<std::byte> arena(static_cast<std::byte*>(my_aligned_alloc(64U, ArenaSize)), &my_aligned_free);
+    const std::shared_ptr<std::byte> arena = make_arena(64U, ArenaSize);
     std::generate_n(arena.get(), ArenaSize, getRandomByte);  // Random-fill the ENTIRE arena!
     auto heap = init(arena.get(), ArenaSize);
     REQUIRE(heap != nullptr);
