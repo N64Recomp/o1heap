@@ -48,10 +48,11 @@ using FragmentOffset = uint32_t;
 inline auto GET_FRAGMENT(const internal::O1HeapInstance* const heap_instance, FragmentOffset offset)
     -> internal::Fragment*
 {
-    return reinterpret_cast<const internal::Fragment* const>(reinterpret_cast<const char* const>(heap_instance) + offset);
+    const char* const address = reinterpret_cast<const char* const>(heap_instance) + offset;
+    return reinterpret_cast<internal::Fragment*>(const_cast<char*>(address));
 }
 
-inline auto GET_OFFSET(const internal::O1HeapInstance* heap_instance, const internal::Fragment* fragment)
+inline auto GET_OFFSET(const internal::O1HeapInstance* heap_instance, const internal::Fragment* const fragment)
     -> FragmentOffset
 {
     return static_cast<FragmentOffset>(reinterpret_cast<const char* const>(fragment) -
