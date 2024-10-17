@@ -37,7 +37,7 @@ void my_aligned_free(void* mem)
     _aligned_free(mem);
 }
 #else
-void* my_aligned_alloc(size_t align, size_t size) 
+void* my_aligned_alloc(size_t align, size_t size)
 {
     return std::aligned_alloc(align, size);
 }

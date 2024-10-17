@@ -45,15 +45,17 @@ struct O1HeapInstance;
 
 using FragmentOffset = uint32_t;
 
-inline auto GET_FRAGMENT(const internal::O1HeapInstance* const heap_instance, FragmentOffset offset) -> internal::Fragment*
+inline auto GET_FRAGMENT(const internal::O1HeapInstance* const heap_instance, FragmentOffset offset)
+    -> internal::Fragment*
 {
-    return reinterpret_cast<internal::Fragment*>(reinterpret_cast<uintptr_t>(heap_instance) + offset);
+    return reinterpret_cast<internal::Fragment*>(reinterpret_cast<const char* const>(heap_instance) + offset);
 }
 
-inline auto GET_OFFSET(const internal::O1HeapInstance* heap_instance, const internal::Fragment* fragment) -> FragmentOffset
+inline auto GET_OFFSET(const internal::O1HeapInstance* heap_instance, const internal::Fragment* fragment)
+    -> FragmentOffset
 {
-    return static_cast<FragmentOffset>(reinterpret_cast<uintptr_t>(fragment) -
-                                       reinterpret_cast<uintptr_t>(heap_instance));
+    return static_cast<FragmentOffset>(reinterpret_cast<const char* const>(fragment) -
+                                       reinterpret_cast<const char* const>(heap_instance));
 }
 
 constexpr internal::FragmentOffset NULLFRAGMENT = 0;
@@ -212,7 +214,8 @@ struct O1HeapInstance final
         REQUIRE(frag->header.size <= Fragment::SizeMax);
         REQUIRE(frag->header.size <= diagnostics.capacity);
         REQUIRE((frag->header.size % Fragment::SizeMin) == 0U);
-        REQUIRE(((frag->header.next == NULLFRAGMENT) || (GET_FRAGMENT(this, frag->header.next)->header.prev == GET_OFFSET(this, frag))));
+        REQUIRE(((frag->header.next == NULLFRAGMENT) ||
+                 (GET_FRAGMENT(this, frag->header.next)->header.prev == GET_OFFSET(this, frag))));
         REQUIRE(frag->header.prev == NULLFRAGMENT);  // The first fragment has no prev!
         return frag;
     }
@@ -231,7 +234,7 @@ struct O1HeapInstance final
     {
         validate();
         INFO(visualize());
-        auto frag = getFirstFragment();
+        auto           frag  = getFirstFragment();
         FragmentOffset frag_ = GET_OFFSET(this, frag);
         for (auto item : reference)
         {
@@ -243,7 +246,7 @@ struct O1HeapInstance final
             REQUIRE((((size == 0U) || (frag->header.size == size))));
             REQUIRE(((frag->header.next == NULLFRAGMENT) || (GET_FRAGMENT(this, frag->header.next)->header.prev == GET_OFFSET(this, frag))));
             frag_ = frag->header.next;
-            frag = GET_FRAGMENT(this, frag_);
+            frag  = GET_FRAGMENT(this, frag_);
         }
         REQUIRE(frag_ == NULLFRAGMENT);
     }
@@ -259,8 +262,8 @@ struct O1HeapInstance final
                << "oom_count=" << diagnostics.oom_count << ".\n"
                << "Size of used blocks is printed as-is, size of free blocks is printed in [brackets]. "
                << "All sizes are divided by the min fragment size (" << Fragment::SizeMin << " bytes).\n";
-        auto frag = getFirstFragment();
-        FragmentOffset frag_;
+        auto           frag  = getFirstFragment();
+        FragmentOffset frag_ = 0U;
         do
         {
             const auto size_blocks = frag->header.size / Fragment::SizeMin;
@@ -273,7 +276,7 @@ struct O1HeapInstance final
                 buffer << "[" << size_blocks << "] ";
             }
             frag_ = frag->header.next;
-            frag = GET_FRAGMENT(this, frag_);
+            frag  = GET_FRAGMENT(this, frag_);
         } while (frag_ != NULLFRAGMENT);
         buffer << "\n";
         return buffer.str();
@@ -321,8 +324,8 @@ private:
         uint32_t total_size      = 0U;
         uint32_t total_allocated = 0U;
 
-        auto frag = getFirstFragment();
-        FragmentOffset frag_;
+        auto           frag  = getFirstFragment();
+        FragmentOffset frag_ = 0U;
         do
         {
             frag->validate(this);
@@ -353,7 +356,7 @@ private:
             }
 
             frag_ = frag->header.next;
-            frag = GET_FRAGMENT(this, frag_);
+            frag  = GET_FRAGMENT(this, frag_);
         } while (frag_ != NULLFRAGMENT);
 
         // Ensure there were no hanging bin pointers.
@@ -401,7 +404,7 @@ private:
                     }
 
                     frag_ = frag->next_free;
-                    frag = GET_FRAGMENT(this, frag_);
+                    frag  = GET_FRAGMENT(this, frag_);
                 } while (frag_ != NULLFRAGMENT);
             }
             else

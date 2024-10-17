@@ -114,7 +114,7 @@ typedef struct Fragment Fragment;
 
 typedef uint32_t FragmentOffset;
 
-#define GET_FRAGMENT(heap_instance, offset) ((Fragment*) ((char*) (heap_instance) + (offset)))
+#define GET_FRAGMENT(heap_instance, offset) ((Fragment*) (void*) ((char*) (heap_instance) + (offset)))
 
 #define GET_OFFSET(heap_instance, fragment) ((FragmentOffset) ((char*) (fragment) - (char*) (heap_instance)))
 
@@ -148,7 +148,7 @@ struct O1HeapInstance
 
 /// The amount of space allocated for the heap instance.
 /// Its size is padded up to O1HEAP_ALIGNMENT to ensure correct alignment of the allocation arena that follows.
-#define INSTANCE_SIZE_PADDED ((uint32_t)((sizeof(O1HeapInstance) + O1HEAP_ALIGNMENT - 1U) & ~(O1HEAP_ALIGNMENT - 1U)))
+#define INSTANCE_SIZE_PADDED ((uint32_t) ((sizeof(O1HeapInstance) + O1HEAP_ALIGNMENT - 1U) & ~(O1HEAP_ALIGNMENT - 1U)))
 
 static_assert(INSTANCE_SIZE_PADDED >= sizeof(O1HeapInstance), "Invalid instance footprint computation");
 static_assert((INSTANCE_SIZE_PADDED % O1HEAP_ALIGNMENT) == 0U, "Invalid instance footprint computation");
