@@ -29,14 +29,12 @@ constexpr std::size_t MiB = KiB * KiB;
 #ifdef _WIN32
 auto make_arena(std::align_val_t align, size_t size) -> std::shared_ptr<std::byte>
 {
-    return std::shared_ptr<std::byte>(static_cast<std::byte*>(_aligned_malloc(size, static_cast<size_t>(align))),
-                                      &_aligned_free);
+    return {static_cast<std::byte*>(_aligned_malloc(size, static_cast<size_t>(align))), &_aligned_free};
 }
 #else
 auto make_arena(std::align_val_t align, size_t size) -> std::shared_ptr<std::byte>
 {
-    return std::shared_ptr<std::byte>(static_cast<std::byte*>(std::aligned_alloc(static_cast<size_t>(align), size)),
-                                      &std::free);
+    return {static_cast<std::byte*>(std::aligned_alloc(static_cast<size_t>(align), size)), &std::free};
 }
 #endif
 
