@@ -49,6 +49,7 @@ inline auto GET_FRAGMENT(const internal::O1HeapInstance* const heap_instance, Fr
     -> internal::Fragment*
 {
     intptr_t address = reinterpret_cast<intptr_t>(heap_instance) + static_cast<intptr_t>(offset);
+    // NOLINTNEXTLINE cast from integer back to pointer.
     return reinterpret_cast<internal::Fragment*>(address);
 }
 
