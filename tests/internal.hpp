@@ -56,8 +56,8 @@ inline auto GET_FRAGMENT(const internal::O1HeapInstance* const heap_instance, Fr
 inline auto GET_OFFSET(const internal::O1HeapInstance* heap_instance, const internal::Fragment* const fragment)
     -> FragmentOffset
 {
-    return static_cast<FragmentOffset>(reinterpret_cast<const char* const>(fragment) -
-                                       reinterpret_cast<const char* const>(heap_instance));
+    return static_cast<FragmentOffset>(reinterpret_cast<const char*>(fragment) -
+                                       reinterpret_cast<const char*>(heap_instance));
 }
 
 constexpr internal::FragmentOffset NULLFRAGMENT = 0;
