@@ -29,14 +29,14 @@ constexpr std::size_t MiB = KiB * KiB;
 #ifdef _WIN32
 auto make_arena(std::align_val_t align, size_t size) -> std::shared_ptr<std::byte>
 {
-    return std::shared_ptr<std::byte>(
-        static_cast<std::byte*>(_aligned_malloc(size, static_cast<size_t>(align))), &_aligned_free);
+    return std::shared_ptr<std::byte>(static_cast<std::byte*>(_aligned_malloc(size, static_cast<size_t>(align))),
+                                      &_aligned_free);
 }
 #else
 auto make_arena(std::align_val_t align, size_t size) -> std::shared_ptr<std::byte>
 {
-    return std::shared_ptr<std::byte>(
-        static_cast<std::byte*>(std::aligned_alloc(static_cast<size_t>(align), size)), &_aligned_free);
+    return std::shared_ptr<std::byte>(static_cast<std::byte*>(std::aligned_alloc(static_cast<size_t>(align), size)),
+                                      &_aligned_free);
 }
 #endif
 
@@ -151,7 +151,7 @@ TEST_CASE("General: allocate: OOM")
 {
     constexpr auto                   MiB256    = MiB * 256U;
     constexpr auto                   ArenaSize = MiB256 + MiB;
-    const std::shared_ptr<std::byte> arena     = make_arena(std::align_val_t(64U), ArenaSize);
+    const std::shared_ptr<std::byte> arena     = make_arena(static_cast<std::align_val_t>(64U), ArenaSize);
 
     auto heap = init(arena.get(), ArenaSize);
     REQUIRE(heap != nullptr);
@@ -192,7 +192,7 @@ TEST_CASE("General: allocate: smallest")
     using internal::Fragment;
 
     constexpr auto                   ArenaSize = MiB * 300U;
-    const std::shared_ptr<std::byte> arena     = make_arena(std::align_val_t(64U), ArenaSize);
+    const std::shared_ptr<std::byte> arena     = make_arena(static_cast<std::align_val_t>(64U), ArenaSize);
 
     auto heap = init(arena.get(), ArenaSize);
     REQUIRE(heap != nullptr);
@@ -224,7 +224,7 @@ TEST_CASE("General: allocate: size_t overflow")
     constexpr auto size_max = std::numeric_limits<uint32_t>::max();
 
     constexpr auto                   ArenaSize = MiB * 300U;
-    const std::shared_ptr<std::byte> arena     = make_arena(std::align_val_t(64U), ArenaSize);
+    const std::shared_ptr<std::byte> arena     = make_arena(static_cast<std::align_val_t>(64U), ArenaSize);
 
     auto heap = init(arena.get(), ArenaSize);
     REQUIRE(heap != nullptr);
@@ -496,7 +496,7 @@ TEST_CASE("General: random A")
     using internal::Fragment;
 
     constexpr auto                   ArenaSize = MiB * 300U;
-    const std::shared_ptr<std::byte> arena     = make_arena(std::align_val_t(64U), ArenaSize);
+    const std::shared_ptr<std::byte> arena     = make_arena(static_cast<std::align_val_t>(64U), ArenaSize);
     std::generate_n(arena.get(), ArenaSize, getRandomByte);  // Random-fill the ENTIRE arena!
     auto heap = init(arena.get(), ArenaSize);
     REQUIRE(heap != nullptr);
