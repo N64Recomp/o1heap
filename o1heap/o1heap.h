@@ -30,8 +30,8 @@ extern "C" {
 /// The semantic version number of this distribution.
 #define O1HEAP_VERSION_MAJOR 2
 
-/// 16-byte alignment.
-#define O1HEAP_ALIGNMENT ((uint32_t)sizeof(uint32_t) * 4U)
+/// 16-byte alignment. Would be sizeof(uint32_t) * 4U, but can't use sizeof here because that gives a size_t and this needs to be a 32-bit value.
+#define O1HEAP_ALIGNMENT (16U)
 
 /// The definition is private, so the user code can only operate on pointers. This is done to enforce encapsulation.
 typedef struct O1HeapInstance O1HeapInstance;
