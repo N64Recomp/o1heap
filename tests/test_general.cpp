@@ -15,9 +15,9 @@
 // Authors: Pavel Kirienko <pavel.kirienko@zubax.com>
 
 #include "internal.hpp"
-#include <cstdlib>
 #include <algorithm>
 #include <array>
+#include <cstdlib>
 #include <iostream>
 #include <random>
 
@@ -27,27 +27,21 @@ constexpr std::size_t KiB = 1024U;
 constexpr std::size_t MiB = KiB * KiB;
 
 #ifdef _WIN32
-void* my_aligned_alloc(size_t align, size_t size) {
-    return _aligned_malloc(size, align);
-}
-
-void my_aligned_free(void* mem) {
-    _aligned_free(mem);
+auto make_arena(std::align_val_t align, size_t size) -> std::shared_ptr<std::byte>
+{
+    return {static_cast<std::byte*>(_aligned_malloc(size, static_cast<size_t>(align))), &_aligned_free};
 }
 #else
-void* my_aligned_alloc(size_t align, size_t size) {
-    return std::aligned_alloc(align, size);
-}
-
-void my_aligned_free(void* mem) {
-    std::aligned_free(mem);
+auto make_arena(std::align_val_t align, size_t size) -> std::shared_ptr<std::byte>
+{
+    return {static_cast<std::byte*>(std::aligned_alloc(static_cast<size_t>(align), size)), &std::free};
 }
 #endif
 
 template <typename T>
 auto log2Floor(const T& x) -> std::enable_if_t<std::is_integral_v<T>, std::uint8_t>
 {
-    uint32_t  tmp = x;
+    uint32_t     tmp = x;
     std::uint8_t y   = 0;
     while (tmp > 1U)
     {
@@ -124,8 +118,8 @@ TEST_CASE("General: init")
 {
     using internal::Fragment;
 
-    std::cout << "sizeof(uint32_t)=" << sizeof(uint32_t) << "; sizeof(O1HeapInstance)=" << sizeof(internal::O1HeapInstance)
-              << std::endl;
+    std::cout << "sizeof(uint32_t)=" << sizeof(uint32_t)
+              << "; sizeof(O1HeapInstance)=" << sizeof(internal::O1HeapInstance) << std::endl;
 
     alignas(128) std::array<std::byte, 10'000U> arena{};
 
@@ -155,7 +149,7 @@ TEST_CASE("General: allocate: OOM")
 {
     constexpr auto                   MiB256    = MiB * 256U;
     constexpr auto                   ArenaSize = MiB256 + MiB;
-    const std::shared_ptr<std::byte> arena(static_cast<std::byte*>(my_aligned_alloc(64U, ArenaSize)), &my_aligned_free);
+    const std::shared_ptr<std::byte> arena     = make_arena(static_cast<std::align_val_t>(64U), ArenaSize);
 
     auto heap = init(arena.get(), ArenaSize);
     REQUIRE(heap != nullptr);
@@ -166,10 +160,11 @@ TEST_CASE("General: allocate: OOM")
     REQUIRE(nullptr == heap->allocate(ArenaSize));  // Too large
     REQUIRE(heap->getDiagnostics().oom_count == 1);
 
-    REQUIRE(nullptr == heap->allocate(ArenaSize - O1HEAP_ALIGNMENT));  // Too large
+    REQUIRE(nullptr == heap->allocate(ArenaSize - static_cast<uint32_t>(O1HEAP_ALIGNMENT)));  // Too large
     REQUIRE(heap->getDiagnostics().oom_count == 2);
 
-    REQUIRE(nullptr == heap->allocate(heap->diagnostics.capacity - O1HEAP_ALIGNMENT + 1U));  // Too large
+    REQUIRE(nullptr ==
+            heap->allocate(heap->diagnostics.capacity - static_cast<uint32_t>(O1HEAP_ALIGNMENT) + 1U));  // Too large
     REQUIRE(heap->getDiagnostics().oom_count == 3);
 
     REQUIRE(nullptr == heap->allocate(ArenaSize * 10U));  // Too large
@@ -182,8 +177,9 @@ TEST_CASE("General: allocate: OOM")
     REQUIRE(heap->getDiagnostics().allocated == 0);
     REQUIRE(heap->getDiagnostics().peak_request_size == ArenaSize * 10U);
 
-    REQUIRE(nullptr != heap->allocate(MiB256 - O1HEAP_ALIGNMENT));  // Maximum possible allocation.
-    REQUIRE(heap->getDiagnostics().oom_count == 4);                 // OOM counter not incremented.
+    REQUIRE(nullptr !=
+            heap->allocate(MiB256 - static_cast<uint32_t>(O1HEAP_ALIGNMENT)));  // Maximum possible allocation.
+    REQUIRE(heap->getDiagnostics().oom_count == 4);                             // OOM counter not incremented.
     REQUIRE(heap->getDiagnostics().peak_allocated == MiB256);
     REQUIRE(heap->getDiagnostics().allocated == MiB256);
     REQUIRE(heap->getDiagnostics().peak_request_size == ArenaSize * 10U);  // Same size -- that one was unsuccessful.
@@ -196,7 +192,7 @@ TEST_CASE("General: allocate: smallest")
     using internal::Fragment;
 
     constexpr auto                   ArenaSize = MiB * 300U;
-    const std::shared_ptr<std::byte> arena(static_cast<std::byte*>(my_aligned_alloc(64U, ArenaSize)), &my_aligned_free);
+    const std::shared_ptr<std::byte> arena     = make_arena(static_cast<std::align_val_t>(64U), ArenaSize);
 
     auto heap = init(arena.get(), ArenaSize);
     REQUIRE(heap != nullptr);
@@ -213,7 +209,8 @@ TEST_CASE("General: allocate: smallest")
     REQUIRE(frag.header.next != internal::NULLFRAGMENT);
     REQUIRE(frag.header.prev == internal::NULLFRAGMENT);
     REQUIRE(frag.header.used);
-    REQUIRE(internal::GET_FRAGMENT(heap, frag.header.next)->header.size == (heap->diagnostics.capacity - frag.header.size));
+    REQUIRE(internal::GET_FRAGMENT(heap, frag.header.next)->header.size ==
+            (heap->diagnostics.capacity - frag.header.size));
     REQUIRE(!internal::GET_FRAGMENT(heap, frag.header.next)->header.used);
 
     heap->free(mem);
@@ -227,7 +224,7 @@ TEST_CASE("General: allocate: size_t overflow")
     constexpr auto size_max = std::numeric_limits<uint32_t>::max();
 
     constexpr auto                   ArenaSize = MiB * 300U;
-    const std::shared_ptr<std::byte> arena(static_cast<std::byte*>(my_aligned_alloc(64U, ArenaSize)), &my_aligned_free);
+    const std::shared_ptr<std::byte> arena     = make_arena(static_cast<std::align_val_t>(64U), ArenaSize);
 
     auto heap = init(arena.get(), ArenaSize);
     REQUIRE(heap != nullptr);
@@ -238,7 +235,7 @@ TEST_CASE("General: allocate: size_t overflow")
         REQUIRE(nullptr == heap->allocate(size_max / i));
         REQUIRE(nullptr == heap->allocate(size_max / i + 1U));  // May overflow to 0.
         REQUIRE(nullptr == heap->allocate(size_max / i - 1U));
-        REQUIRE(nullptr == heap->allocate(Fragment::SizeMax - O1HEAP_ALIGNMENT + 1U));
+        REQUIRE(nullptr == heap->allocate(Fragment::SizeMax - static_cast<uint32_t>(O1HEAP_ALIGNMENT) + 1U));
     }
 
     // Over-commit the arena -- it is SMALLER than the size we're providing; it's an UB but for a test it's acceptable.
@@ -250,11 +247,11 @@ TEST_CASE("General: allocate: size_t overflow")
         REQUIRE(nullptr == heap->allocate(size_max / i));
         REQUIRE(nullptr == heap->allocate(size_max / i + 1U));
         REQUIRE(nullptr == heap->allocate(size_max / i - 1U));
-        REQUIRE(nullptr == heap->allocate(Fragment::SizeMax - O1HEAP_ALIGNMENT + 1U));
+        REQUIRE(nullptr == heap->allocate(Fragment::SizeMax - static_cast<uint32_t>(O1HEAP_ALIGNMENT) + 1U));
     }
 
     // Make sure the max-sized fragments are allocatable.
-    void* const mem = heap->allocate(Fragment::SizeMax - O1HEAP_ALIGNMENT);
+    void* const mem = heap->allocate(Fragment::SizeMax - static_cast<uint32_t>(O1HEAP_ALIGNMENT));
     REQUIRE(mem != nullptr);
 
     auto& frag = Fragment::constructFromAllocatedMemory(mem);
@@ -267,7 +264,9 @@ TEST_CASE("General: allocate: size_t overflow")
     REQUIRE(heap->getDiagnostics().allocated == Fragment::SizeMax);
 
     REQUIRE(heap->nonempty_bin_mask == 0);
-    REQUIRE(std::all_of(std::begin(heap->bins), std::end(heap->bins), [](internal::FragmentOffset p) { return p == internal::NULLFRAGMENT; }));
+    REQUIRE(std::all_of(std::begin(heap->bins), std::end(heap->bins), [](internal::FragmentOffset p) {
+        return p == internal::NULLFRAGMENT;
+    }));
 
     REQUIRE(heap->doInvariantsHold());
 }
@@ -497,7 +496,7 @@ TEST_CASE("General: random A")
     using internal::Fragment;
 
     constexpr auto                   ArenaSize = MiB * 300U;
-    const std::shared_ptr<std::byte> arena(static_cast<std::byte*>(my_aligned_alloc(64U, ArenaSize)), &my_aligned_free);
+    const std::shared_ptr<std::byte> arena     = make_arena(static_cast<std::align_val_t>(64U), ArenaSize);
     std::generate_n(arena.get(), ArenaSize, getRandomByte);  // Random-fill the ENTIRE arena!
     auto heap = init(arena.get(), ArenaSize);
     REQUIRE(heap != nullptr);
@@ -517,7 +516,7 @@ TEST_CASE("General: random A")
         std::uniform_int_distribution<uint32_t> dis(0, ArenaSize / 1000U);
 
         const uint32_t amount = dis(random_generator);
-        const auto        ptr    = heap->allocate(amount);
+        const auto     ptr    = heap->allocate(amount);
         if (ptr != nullptr)
         {
             // Overwrite all to ensure that the allocator does not make implicit assumptions about the memory use.
