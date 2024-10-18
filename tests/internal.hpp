@@ -77,7 +77,7 @@ struct Fragment final
     FragmentOffset next_free = NULLFRAGMENT;
     FragmentOffset prev_free = NULLFRAGMENT;
 
-    static constexpr uint32_t SizeMin = O1HEAP_ALIGNMENT * 2U;
+    static constexpr uint32_t SizeMin = static_cast<uint32_t>(O1HEAP_ALIGNMENT) * 2U;
     static constexpr uint32_t SizeMax = (std::numeric_limits<uint32_t>::max() >> 1U) + 1U;
     static_assert((SizeMin & (SizeMin - 1U)) == 0U);
     static_assert((SizeMax & (SizeMax - 1U)) == 0U);
