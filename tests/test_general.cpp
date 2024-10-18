@@ -163,7 +163,8 @@ TEST_CASE("General: allocate: OOM")
     REQUIRE(nullptr == heap->allocate(ArenaSize - static_cast<uint32_t>(O1HEAP_ALIGNMENT)));  // Too large
     REQUIRE(heap->getDiagnostics().oom_count == 2);
 
-    REQUIRE(nullptr == heap->allocate(heap->diagnostics.capacity - static_cast<uint32_t>(O1HEAP_ALIGNMENT) + 1U));  // Too large
+    REQUIRE(nullptr ==
+            heap->allocate(heap->diagnostics.capacity - static_cast<uint32_t>(O1HEAP_ALIGNMENT) + 1U));  // Too large
     REQUIRE(heap->getDiagnostics().oom_count == 3);
 
     REQUIRE(nullptr == heap->allocate(ArenaSize * 10U));  // Too large
@@ -176,8 +177,9 @@ TEST_CASE("General: allocate: OOM")
     REQUIRE(heap->getDiagnostics().allocated == 0);
     REQUIRE(heap->getDiagnostics().peak_request_size == ArenaSize * 10U);
 
-    REQUIRE(nullptr != heap->allocate(MiB256 - static_cast<uint32_t>(O1HEAP_ALIGNMENT)));  // Maximum possible allocation.
-    REQUIRE(heap->getDiagnostics().oom_count == 4);                 // OOM counter not incremented.
+    REQUIRE(nullptr !=
+            heap->allocate(MiB256 - static_cast<uint32_t>(O1HEAP_ALIGNMENT)));  // Maximum possible allocation.
+    REQUIRE(heap->getDiagnostics().oom_count == 4);                             // OOM counter not incremented.
     REQUIRE(heap->getDiagnostics().peak_allocated == MiB256);
     REQUIRE(heap->getDiagnostics().allocated == MiB256);
     REQUIRE(heap->getDiagnostics().peak_request_size == ArenaSize * 10U);  // Same size -- that one was unsuccessful.
