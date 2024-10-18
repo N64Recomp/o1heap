@@ -160,10 +160,10 @@ TEST_CASE("General: allocate: OOM")
     REQUIRE(nullptr == heap->allocate(ArenaSize));  // Too large
     REQUIRE(heap->getDiagnostics().oom_count == 1);
 
-    REQUIRE(nullptr == heap->allocate(ArenaSize - O1HEAP_ALIGNMENT));  // Too large
+    REQUIRE(nullptr == heap->allocate(ArenaSize - static_cast<uint32_t>(O1HEAP_ALIGNMENT)));  // Too large
     REQUIRE(heap->getDiagnostics().oom_count == 2);
 
-    REQUIRE(nullptr == heap->allocate(heap->diagnostics.capacity - O1HEAP_ALIGNMENT + 1U));  // Too large
+    REQUIRE(nullptr == heap->allocate(heap->diagnostics.capacity - static_cast<uint32_t>(O1HEAP_ALIGNMENT) + 1U));  // Too large
     REQUIRE(heap->getDiagnostics().oom_count == 3);
 
     REQUIRE(nullptr == heap->allocate(ArenaSize * 10U));  // Too large
@@ -176,7 +176,7 @@ TEST_CASE("General: allocate: OOM")
     REQUIRE(heap->getDiagnostics().allocated == 0);
     REQUIRE(heap->getDiagnostics().peak_request_size == ArenaSize * 10U);
 
-    REQUIRE(nullptr != heap->allocate(MiB256 - O1HEAP_ALIGNMENT));  // Maximum possible allocation.
+    REQUIRE(nullptr != heap->allocate(MiB256 - static_cast<uint32_t>(O1HEAP_ALIGNMENT)));  // Maximum possible allocation.
     REQUIRE(heap->getDiagnostics().oom_count == 4);                 // OOM counter not incremented.
     REQUIRE(heap->getDiagnostics().peak_allocated == MiB256);
     REQUIRE(heap->getDiagnostics().allocated == MiB256);
@@ -233,7 +233,7 @@ TEST_CASE("General: allocate: size_t overflow")
         REQUIRE(nullptr == heap->allocate(size_max / i));
         REQUIRE(nullptr == heap->allocate(size_max / i + 1U));  // May overflow to 0.
         REQUIRE(nullptr == heap->allocate(size_max / i - 1U));
-        REQUIRE(nullptr == heap->allocate(Fragment::SizeMax - O1HEAP_ALIGNMENT + 1U));
+        REQUIRE(nullptr == heap->allocate(Fragment::SizeMax - static_cast<uint32_t>(O1HEAP_ALIGNMENT) + 1U));
     }
 
     // Over-commit the arena -- it is SMALLER than the size we're providing; it's an UB but for a test it's acceptable.
@@ -245,11 +245,11 @@ TEST_CASE("General: allocate: size_t overflow")
         REQUIRE(nullptr == heap->allocate(size_max / i));
         REQUIRE(nullptr == heap->allocate(size_max / i + 1U));
         REQUIRE(nullptr == heap->allocate(size_max / i - 1U));
-        REQUIRE(nullptr == heap->allocate(Fragment::SizeMax - O1HEAP_ALIGNMENT + 1U));
+        REQUIRE(nullptr == heap->allocate(Fragment::SizeMax - static_cast<uint32_t>(O1HEAP_ALIGNMENT) + 1U));
     }
 
     // Make sure the max-sized fragments are allocatable.
-    void* const mem = heap->allocate(Fragment::SizeMax - O1HEAP_ALIGNMENT);
+    void* const mem = heap->allocate(Fragment::SizeMax - static_cast<uint32_t>(O1HEAP_ALIGNMENT));
     REQUIRE(mem != nullptr);
 
     auto& frag = Fragment::constructFromAllocatedMemory(mem);
